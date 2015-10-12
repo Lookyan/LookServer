@@ -4,11 +4,13 @@
 #include <event2/event.h>
 #include <event2/buffer.h>
 #include <event2/bufferevent.h>
+#include <stdlib.h>
 
 class Client
 {
 public:
     Client();
+    ~Client();
     void setEvBase(event_base *evbase) { this->evbase = evbase; }
     void setBufEv(bufferevent *buf_ev) { this->buf_ev = buf_ev; }
     void setOutputBuffer(evbuffer *output_buffer) { this->output_buffer = output_buffer; }

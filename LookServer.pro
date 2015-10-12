@@ -7,12 +7,15 @@ CONFIG += C++11
 SOURCES += main.cpp \
     httpserver.cpp \
     workqueue.cpp \
-    client.cpp
+    client.cpp \
+    httpparser.cpp
 
-LIBS += -levent
 LIBS += -lpthread
+LIBS += -levent
+LIBS += -levent_pthreads
 
 HEADERS += \
     httpserver.h \
     workqueue.h \
-    client.h
+    client.h \
+    httpparser.h

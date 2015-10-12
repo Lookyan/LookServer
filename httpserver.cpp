@@ -1,5 +1,6 @@
 #include "httpserver.h"
 #include "client.h"
+#include <event2/thread.h>
 #include <iostream>
 #include <string.h>
 #include <errno.h>
@@ -10,6 +11,7 @@ workqueue_t HttpServer::workqueue;
 
 HttpServer::HttpServer()
 {
+    evthread_use_pthreads();
     //TODO: Signal handling
     
 	struct sockaddr_in listenAddr;
@@ -20,6 +22,11 @@ HttpServer::HttpServer()
     if (!base) {
             puts("Couldn't open event base");
 //            return 1;
+    }
+    
+    if (evthread_make_base_notifiable(base)<0) {
+        std::cout << "Couldn't make base notifiable!";
+        //return 1;
     }
     
     memset(&listenAddr, 0, sizeof(listenAddr));
@@ -61,9 +68,9 @@ void HttpServer::startServer()
 
 void HttpServer::acceptConnCb(evconnlistener *listener, int fd, sockaddr *address, int socklen, void *arg)
 {
-    std::cout << "yes" << std::endl;
+    std::cout << "yes: " << fd << std::endl;
     struct event_base *base = evconnlistener_get_base(listener);
-    struct bufferevent *bev = bufferevent_socket_new(base, fd, BEV_OPT_CLOSE_ON_FREE);
+    struct bufferevent *bev = bufferevent_socket_new(base, fd, BEV_OPT_CLOSE_ON_FREE|BEV_OPT_THREADSAFE);
     
     workqueue_t *workqueue = (workqueue_t *)arg;
     Client* client = new Client();
@@ -75,7 +82,7 @@ void HttpServer::acceptConnCb(evconnlistener *listener, int fd, sockaddr *addres
     timeval* writeTimeout = new timeval();
     writeTimeout->tv_sec = 2;
     //bufferevent_set_timeouts(bev, readTimeout, writeTimeout); // TODO: constants remove
-    bufferevent_enable(client->getBufEv(), EV_READ); 
+   
     job_t *job = new job_t;
     job->job_function = serverJobFunction;
 	job->user_data = client;
@@ -97,39 +104,54 @@ void HttpServer::echoReadCb(bufferevent *bev, void *ctx)
     struct evbuffer *input = bufferevent_get_input(bev);
     struct evbuffer *output = bufferevent_get_output(bev);
     
-//    char *request_line;
-//    size_t len;
+    char *request_line = new char[1000];
+    size_t len;
     
 //    do {
 //        request_line = evbuffer_readln(input, &len, EVBUFFER_EOL_CRLF);
 //        std::cout << request_line << std::endl;
 //    } while(request_line != NULL);
 
+//    request_line = evbuffer_readln(input, &len, EVBUFFER_EOL_CRLF);
+//    std::cout << request_line << std::endl;
+    
+//    evbuffer_copyout(input, request_line, 1000);
+//    std::cout << "-----------" << std::endl;
+//    std::cout << request_line << std::endl;
+//    std::cout << "-----------" << std::endl;
     /* Copy all the data from the input buffer to the output buffer. */
-    evbuffer_add_buffer(output, input);
+    
+    const char* outdata = "HTTP/1.1 200 OK\nContent-Type: text/html; charset=utf-8\nContent-Length: 11\n\n<b>Test</b>";
+    evbuffer_add_printf(output, outdata);
+    //evbuffer_add_buffer(output, input);
 }
 
 void HttpServer::echoEventCb(bufferevent *bev, short events, void *ctx)
 {
     if (events & BEV_EVENT_ERROR)
             perror("Error from bufferevent");
-//    if (events & (BEV_EVENT_EOF | BEV_EVENT_ERROR)) {
-//            bufferevent_free(bev);
-//    }
+    if (events & (BEV_EVENT_EOF | BEV_EVENT_ERROR)) {
+            bufferevent_free(bev);
+    }
 }
 
 void HttpServer::writeCb(bufferevent *bev, void *ctx)
 {
-    std::cout << "write" << std::endl;
+    //std::cout << "write" << std::endl;
     bufferevent_free(bev);
 }
 
 void HttpServer::serverJobFunction(job *job)
 {
     Client *client = (Client *)job->user_data;
+    bufferevent_lock(client->getBufEv());    
+    evbuffer_enable_locking(bufferevent_get_input(client->getBufEv()), NULL);
+    evbuffer_enable_locking(bufferevent_get_output(client->getBufEv()), NULL);
+    bufferevent_enable(client->getBufEv(), EV_READ); 
     bufferevent_setcb(client->getBufEv(), echoReadCb, writeCb, echoEventCb, NULL);
 
     delete client;
 	//closeAndFreeClient(client);
 	free(job);
+    bufferevent_unlock(client->getBufEv());
 }

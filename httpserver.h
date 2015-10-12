@@ -27,7 +27,7 @@ private:
     
     const static int port = 5555;
     const static int maxConn = 8;
-    const static int numThreads = 2;
+    const static int numThreads = 8;
     static workqueue_t workqueue;
 };
 
