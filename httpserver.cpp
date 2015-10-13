@@ -6,6 +6,7 @@
 #include <errno.h>
 #include <err.h>
 #include <sys/time.h>
+#include "httpparser.h"
 
 workqueue_t HttpServer::workqueue;
 
@@ -77,10 +78,6 @@ void HttpServer::acceptConnCb(evconnlistener *listener, int fd, sockaddr *addres
     client->setBufEv(bev);
     client->setEvBase(base);
     client->setOutputBuffer(evbuffer_new());
-    timeval* readTimeout = new timeval();
-    readTimeout->tv_sec = 2;
-    timeval* writeTimeout = new timeval();
-    writeTimeout->tv_sec = 2;
     //bufferevent_set_timeouts(bev, readTimeout, writeTimeout); // TODO: constants remove
    
     job_t *job = new job_t;
@@ -104,11 +101,18 @@ void HttpServer::echoReadCb(bufferevent *bev, void *ctx)
     struct evbuffer *input = bufferevent_get_input(bev);
     struct evbuffer *output = bufferevent_get_output(bev);
     
-    char *request_line = new char[1000];
+    char *request_line = (char *)calloc(1000, sizeof(char));
     size_t len;
     
+    evbuffer_copyout(input, request_line, evbuffer_get_length(input));
+    HttpParser* httpParser = new HttpParser();
+    httpParser->setRequest(request_line);
+    
+    //std::cout << request_line << std::endl;
+    free(request_line);
+    
 //    do {
-//        request_line = evbuffer_readln(input, &len, EVBUFFER_EOL_CRLF);
+//        request_line = evbuffer_readln(input, NULL, EVBUFFER_EOL_CRLF);
 //        std::cout << request_line << std::endl;
 //    } while(request_line != NULL);
 
@@ -144,14 +148,14 @@ void HttpServer::writeCb(bufferevent *bev, void *ctx)
 void HttpServer::serverJobFunction(job *job)
 {
     Client *client = (Client *)job->user_data;
-    bufferevent_lock(client->getBufEv());    
-    evbuffer_enable_locking(bufferevent_get_input(client->getBufEv()), NULL);
-    evbuffer_enable_locking(bufferevent_get_output(client->getBufEv()), NULL);
-    bufferevent_enable(client->getBufEv(), EV_READ); 
+    //bufferevent_lock(client->getBufEv());    
+//    evbuffer_enable_locking(bufferevent_get_input(client->getBufEv()), NULL);
+//    evbuffer_enable_locking(bufferevent_get_output(client->getBufEv()), NULL);
+    bufferevent_enable(client->getBufEv(), EV_READ);
     bufferevent_setcb(client->getBufEv(), echoReadCb, writeCb, echoEventCb, NULL);
 
     delete client;
 	//closeAndFreeClient(client);
-	free(job);
-    bufferevent_unlock(client->getBufEv());
+	delete job;
+    //bufferevent_unlock(client->getBufEv());
 }
