@@ -8,7 +8,8 @@ SOURCES += main.cpp \
     httpserver.cpp \
     workqueue.cpp \
     client.cpp \
-    httpparser.cpp
+    httpparser.cpp \
+    response.cpp
 
 LIBS += -lpthread
 LIBS += -levent
@@ -18,4 +19,5 @@ HEADERS += \
     httpserver.h \
     workqueue.h \
     client.h \
-    httpparser.h
+    httpparser.h \
+    response.h

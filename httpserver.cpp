@@ -69,7 +69,7 @@ void HttpServer::startServer()
 
 void HttpServer::acceptConnCb(evconnlistener *listener, int fd, sockaddr *address, int socklen, void *arg)
 {
-    std::cout << "yes: " << fd << std::endl;
+    //std::cout << "yes: " << fd << std::endl;
     struct event_base *base = evconnlistener_get_base(listener);
     struct bufferevent *bev = bufferevent_socket_new(base, fd, BEV_OPT_CLOSE_ON_FREE|BEV_OPT_THREADSAFE);
     
@@ -106,9 +106,10 @@ void HttpServer::echoReadCb(bufferevent *bev, void *ctx)
     
     evbuffer_copyout(input, request_line, evbuffer_get_length(input));
     HttpParser* httpParser = new HttpParser();
-    httpParser->setRequest(request_line);
+    evbuffer* temp = httpParser->setRequest(request_line);
     
     //std::cout << request_line << std::endl;
+    delete httpParser;
     free(request_line);
     
 //    do {
@@ -125,17 +126,23 @@ void HttpServer::echoReadCb(bufferevent *bev, void *ctx)
 //    std::cout << "-----------" << std::endl;
     /* Copy all the data from the input buffer to the output buffer. */
     
-    const char* outdata = "HTTP/1.1 200 OK\nContent-Type: text/html; charset=utf-8\nContent-Length: 11\n\n<b>Test</b>";
-    evbuffer_add_printf(output, outdata);
+    evbuffer_add_buffer(output, temp);
+    //const char* outdata = "HTTP/1.1 200 OK\nContent-Type: text/html; charset=utf-8\nContent-Length: 11\n\n<b>Test</b>";
+    //evbuffer_add_printf(output, outdata);
+    
+    evbuffer_free(temp);
     //evbuffer_add_buffer(output, input);
 }
 
 void HttpServer::echoEventCb(bufferevent *bev, short events, void *ctx)
 {
+    if (events & BEV_EVENT_TIMEOUT) {
+        bufferevent_free(bev);
+    }
     if (events & BEV_EVENT_ERROR)
-            perror("Error from bufferevent");
+        std::cout << "bufferevent error!" << std::endl;
     if (events & (BEV_EVENT_EOF | BEV_EVENT_ERROR)) {
-            bufferevent_free(bev);
+        bufferevent_free(bev);
     }
 }
 
@@ -151,9 +158,11 @@ void HttpServer::serverJobFunction(job *job)
     //bufferevent_lock(client->getBufEv());    
 //    evbuffer_enable_locking(bufferevent_get_input(client->getBufEv()), NULL);
 //    evbuffer_enable_locking(bufferevent_get_output(client->getBufEv()), NULL);
-    bufferevent_enable(client->getBufEv(), EV_READ);
+    struct timeval one_second = {1,0};
+    //bufferevent_set_timeouts(client->getBufEv(), &one_second, &one_second);
+    bufferevent_enable(client->getBufEv(), EV_PERSIST|EV_TIMEOUT|EV_READ);
     bufferevent_setcb(client->getBufEv(), echoReadCb, writeCb, echoEventCb, NULL);
-
+    
     delete client;
 	//closeAndFreeClient(client);
 	delete job;

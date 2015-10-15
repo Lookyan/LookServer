@@ -1,11 +1,13 @@
 #ifndef HTTPPARSER_H
 #define HTTPPARSER_H
 
+#include "response.h"
+
 class HttpParser
 {
 public:
     HttpParser();
-    void setRequest(char* req);
+    evbuffer *setRequest(char* req);
     
     /*
      * @return free char* outside this class 
