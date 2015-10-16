@@ -174,10 +174,10 @@ void HttpServer::serverJobFunction(job *job)
 //    evbuffer_enable_locking(bufferevent_get_output(client->getBufEv()), NULL);
     //struct timeval one_second = {1,0};
     //bufferevent_set_timeouts(client->getBufEv(), &one_second, &one_second);
+    bufferevent_setcb(client->getBufEv(), echoReadCb, writeCb, echoEventCb, NULL);
     bufferevent_enable(client->getBufEv(), EV_PERSIST|EV_TIMEOUT|EV_READ);
     //bool* sw = new bool[1];
     //sw[0] = false;
-    bufferevent_setcb(client->getBufEv(), echoReadCb, writeCb, echoEventCb, NULL);
     
     delete client;
 	//closeAndFreeClient(client);
