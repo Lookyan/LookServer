@@ -12,13 +12,14 @@ public:
     /*
      * @return free char* outside this class 
      * */
-    char* getResponse();
     
 private:
-    char* getFileContent();
+    const char* getContentType(char* extension);
+    
     char* req;
     char* path;
     static const char* DOCUMENT_ROOT;
+    static const char* INDEX_FILE;
 };
 
 #endif // HTTPPARSER_H

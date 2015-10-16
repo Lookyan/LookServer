@@ -98,6 +98,11 @@ void HttpServer::acceptErrorCb(evconnlistener *listener, void *ctx)
 
 void HttpServer::echoReadCb(bufferevent *bev, void *ctx)
 {
+//    bool* sw = (bool*)ctx;
+//    if(sw[0]) {
+//        return;
+//    }
+//    sw[0] = true;
     struct evbuffer *input = bufferevent_get_input(bev);
     struct evbuffer *output = bufferevent_get_output(bev);
     
@@ -137,7 +142,16 @@ void HttpServer::echoReadCb(bufferevent *bev, void *ctx)
 void HttpServer::echoEventCb(bufferevent *bev, short events, void *ctx)
 {
     if (events & BEV_EVENT_TIMEOUT) {
-        bufferevent_free(bev);
+        //bool* sw = (bool*)ctx;
+        //int n = evbuffer_get_length(bufferevent_get_output(bev));
+        //if(n == 0)
+//        if(!sw[0]) {
+//            echoReadCb(bev, sw); // one more time
+//        } else {
+//            bufferevent_free(bev);
+//            delete[] sw;
+//        }
+        //bufferevent_free(bev);
     }
     if (events & BEV_EVENT_ERROR)
         std::cout << "bufferevent error!" << std::endl;
@@ -158,9 +172,11 @@ void HttpServer::serverJobFunction(job *job)
     //bufferevent_lock(client->getBufEv());    
 //    evbuffer_enable_locking(bufferevent_get_input(client->getBufEv()), NULL);
 //    evbuffer_enable_locking(bufferevent_get_output(client->getBufEv()), NULL);
-    struct timeval one_second = {1,0};
+    //struct timeval one_second = {1,0};
     //bufferevent_set_timeouts(client->getBufEv(), &one_second, &one_second);
     bufferevent_enable(client->getBufEv(), EV_PERSIST|EV_TIMEOUT|EV_READ);
+    //bool* sw = new bool[1];
+    //sw[0] = false;
     bufferevent_setcb(client->getBufEv(), echoReadCb, writeCb, echoEventCb, NULL);
     
     delete client;

@@ -8,7 +8,7 @@ class Response
 public:
     Response(int code);
     ~Response();
-    void addHeader(char* name, char* value);
+    void addHeader(const char *name, const char *value);
     evbuffer* getRawResponse();
     
 private:
