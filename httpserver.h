@@ -20,8 +20,8 @@ private:
         evutil_socket_t fd, struct sockaddr *address, int socklen,
         void *ctx);
     static void acceptErrorCb(struct evconnlistener *listener, void *ctx);
-    static void echoReadCb(struct bufferevent *bev, void *ctx);
-    static void echoEventCb(struct bufferevent *bev, short events, void *ctx);
+    static void readCb(struct bufferevent *bev, void *ctx);
+    static void eventCb(struct bufferevent *bev, short events, void *ctx);
     static void serverJobFunction(struct job *job);
     static void writeCb(bufferevent *bev, void *ctx);
     

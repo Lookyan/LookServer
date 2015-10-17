@@ -3,6 +3,7 @@
 #include <iostream>
 #include <cstdlib>
 #include <cstring>
+#include <exception>
 
 int main(int argc, char **argv)
 {    
@@ -36,8 +37,15 @@ int main(int argc, char **argv)
         }
     }
     
-    HttpServer* httpServer = new HttpServer();
-    httpServer->startServer(port, nCPU, rootDir);
+    HttpServer* httpServer = 0;
+    try {
+        HttpServer* httpServer = new HttpServer();
+        httpServer->startServer(port, nCPU, rootDir);
+    }
+    catch(std::exception& err) {
+        std::cout << err.what() << std::endl;
+        delete httpServer;
+    }
     
     delete httpServer;
     return 0;

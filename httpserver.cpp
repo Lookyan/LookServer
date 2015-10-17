@@ -6,6 +6,8 @@
 #include <errno.h>
 #include <err.h>
 #include <sys/time.h>
+#include <exception>
+#include <stdexcept>
 #include "httpparser.h"
 #include "configuration.h"
 
@@ -33,13 +35,12 @@ void HttpServer::startServer(int port, int nCPU, char* docRoot)
     
     base = event_base_new();
     if (!base) {
-            puts("Couldn't open event base");
-//            return 1;
+        throw std::runtime_error("Can't create base");
     }
     
     if (evthread_make_base_notifiable(base)<0) {
-        std::cout << "Couldn't make base notifiable!";
-        //return 1;
+        event_base_free(base);
+        throw std::runtime_error("Couldn't make base notifiable!");                
     }
     
     memset(&listenAddr, 0, sizeof(listenAddr));
@@ -62,9 +63,10 @@ void HttpServer::startServer(int port, int nCPU, char* docRoot)
     listener = evconnlistener_new_bind(base, acceptConnCb, (void *)&workqueue,
         LEV_OPT_CLOSE_ON_FREE|LEV_OPT_REUSEABLE|LEV_OPT_THREADSAFE, Configuration::maxConn,
         (struct sockaddr*)&listenAddr, sizeof(listenAddr));
-    if (!listener) {
-//            perror("Couldn't create listener");
-//            return 1;
+    if (listener == NULL) {
+        event_base_free(base);
+        WorkQueue::workqueue_shutdown(&workqueue);
+        throw std::runtime_error("Port is busy");  
     }
     
     evconnlistener_set_error_cb(listener, acceptErrorCb);
@@ -102,7 +104,7 @@ void HttpServer::acceptErrorCb(evconnlistener *listener, void *ctx)
     event_base_loopexit(base, NULL);
 }
 
-void HttpServer::echoReadCb(bufferevent *bev, void *ctx)
+void HttpServer::readCb(bufferevent *bev, void *ctx)
 {
     struct evbuffer *input = bufferevent_get_input(bev);
     struct evbuffer *output = bufferevent_get_output(bev);
@@ -123,7 +125,7 @@ void HttpServer::echoReadCb(bufferevent *bev, void *ctx)
     evbuffer_free(temp);
 }
 
-void HttpServer::echoEventCb(bufferevent *bev, short events, void *ctx)
+void HttpServer::eventCb(bufferevent *bev, short events, void *ctx)
 {
     if (events & BEV_EVENT_ERROR)
         std::cout << "bufferevent error!" << std::endl;
@@ -143,7 +145,7 @@ void HttpServer::serverJobFunction(job *job)
     //bufferevent_lock(client->getBufEv());    
 //    evbuffer_enable_locking(bufferevent_get_input(client->getBufEv()), NULL);
 //    evbuffer_enable_locking(bufferevent_get_output(client->getBufEv()), NULL);
-    bufferevent_setcb(client->getBufEv(), echoReadCb, writeCb, echoEventCb, NULL);
+    bufferevent_setcb(client->getBufEv(), readCb, writeCb, eventCb, NULL);
     bufferevent_enable(client->getBufEv(), EV_PERSIST|EV_TIMEOUT|EV_READ);
     
     delete client;
