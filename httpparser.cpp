@@ -53,22 +53,10 @@ evbuffer* HttpParser::setRequest(char *req)
     }        
     
     
-//    FILE *f;
-//    f = fopen(path, "rb");
-//    if(f == NULL) {
-//        free(path);
-//        return (new Response(404))->getRawResponse();
-//    }
-//    fseek(f, 0, SEEK_END);
-//    long fsize = ftell(f);
-//    //fseek(f, 0, SEEK_SET);
-//    rewind(f);
-    
-//    char *string = (char*)malloc(fsize + 1);
-//    fread(string, fsize, 1, f);
-//    fclose(f);
-        
-//    string[fsize] = '\0';
+    if(strstr(path, "/../") != NULL) {
+        free(path);
+        return (new Response(404))->getRawResponse();
+    }
     
     int fd = open (path, O_RDONLY);
     if(fd < 0) {
@@ -78,17 +66,14 @@ evbuffer* HttpParser::setRequest(char *req)
     struct stat stat_;
     fstat (fd, &stat_);
     
-    //std::cout << string << std::endl;
-    
     Response* response = new Response(200);
     response->addHeader("Content-type", getContentType(extension));
     response->addHeader("Content-Length", stat_.st_size);
     evbuffer *temp = response->getRawResponse();
-    evbuffer_add_file(temp, fd, 0, stat_.st_size);
-    //evbuffer_add_printf(temp, "%s", string);
+    if(strcmp(method, "GET") == 0) {
+        evbuffer_add_file(temp, fd, 0, stat_.st_size);
+    }
     
-    //if(string != NULL)
-    //    free(string);
     if(path != NULL)
         free(path);
     if(extension != NULL)
