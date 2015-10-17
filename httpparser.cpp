@@ -3,6 +3,8 @@
 #include <iostream>
 #include <string.h>
 #include <stdio.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 const char* HttpParser::DOCUMENT_ROOT = "/home/alex/ldocroot";
 const char* HttpParser::INDEX_FILE = "index.html";
@@ -51,32 +53,42 @@ evbuffer* HttpParser::setRequest(char *req)
     }        
     
     
-    FILE *f;
-    f = fopen(path, "rb");
-    if(f == NULL) {
+//    FILE *f;
+//    f = fopen(path, "rb");
+//    if(f == NULL) {
+//        free(path);
+//        return (new Response(404))->getRawResponse();
+//    }
+//    fseek(f, 0, SEEK_END);
+//    long fsize = ftell(f);
+//    //fseek(f, 0, SEEK_SET);
+//    rewind(f);
+    
+//    char *string = (char*)malloc(fsize + 1);
+//    fread(string, fsize, 1, f);
+//    fclose(f);
+        
+//    string[fsize] = '\0';
+    
+    int fd = open (path, O_RDONLY);
+    if(fd < 0) {
         free(path);
         return (new Response(404))->getRawResponse();
     }
-    fseek(f, 0, SEEK_END);
-    long fsize = ftell(f);
-    //fseek(f, 0, SEEK_SET);
-    rewind(f);
-    
-    char *string = (char*)malloc(fsize + 1);
-    int result = fread(string, fsize, 1, f);
-    fclose(f);
-        
-    string[fsize] = '\0';
+    struct stat stat_;
+    fstat (fd, &stat_);
     
     //std::cout << string << std::endl;
     
     Response* response = new Response(200);
     response->addHeader("Content-type", getContentType(extension));
+    response->addHeader("Content-Length", stat_.st_size);
     evbuffer *temp = response->getRawResponse();
-    evbuffer_add_printf(temp, "%s", string);
+    evbuffer_add_file(temp, fd, 0, stat_.st_size);
+    //evbuffer_add_printf(temp, "%s", string);
     
-    if(string != NULL)
-        free(string);
+    //if(string != NULL)
+    //    free(string);
     if(path != NULL)
         free(path);
     if(extension != NULL)

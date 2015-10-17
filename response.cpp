@@ -39,9 +39,14 @@ void Response::addHeader(const char *name, const char *value)
     evbuffer_add_printf(response, "%s: %s\r\n", name, value);
 }
 
+void Response::addHeader(const char *name, int value) 
+{
+    evbuffer_add_printf(response, "%s: %d\r\n", name, value);
+}
+
 evbuffer *Response::getRawResponse()
 {
-    evbuffer_add_printf(response, "\r\n\r\n");
+    evbuffer_add_printf(response, "\r\n");
     return response;
 }
 

@@ -25,7 +25,7 @@ private:
     static void serverJobFunction(struct job *job);
     static void writeCb(bufferevent *bev, void *ctx);
     
-    const static int port = 5555;
+    const static int port = 8080;
     const static int maxConn = 8;
     const static int numThreads = 8;
     static workqueue_t workqueue;

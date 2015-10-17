@@ -9,6 +9,7 @@ public:
     Response(int code);
     ~Response();
     void addHeader(const char *name, const char *value);
+    void addHeader(const char *name, int value);
     evbuffer* getRawResponse();
     
 private:
