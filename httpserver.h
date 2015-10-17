@@ -13,7 +13,7 @@ class HttpServer
 public:
     HttpServer();
     virtual ~HttpServer();
-    void startServer();
+    void startServer(int port, int nCPU, char* docRoot);
     
 private:
     static void acceptConnCb(struct evconnlistener *listener,
@@ -25,9 +25,6 @@ private:
     static void serverJobFunction(struct job *job);
     static void writeCb(bufferevent *bev, void *ctx);
     
-    const static int port = 8080;
-    const static int maxConn = 8;
-    const static int numThreads = 8;
     static workqueue_t workqueue;
 };
 

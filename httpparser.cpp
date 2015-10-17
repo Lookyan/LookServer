@@ -7,9 +7,6 @@
 #include <fcntl.h>
 #include <assert.h>
 
-const char* HttpParser::DOCUMENT_ROOT = "/home/alex/ldocroot";
-const char* HttpParser::INDEX_FILE = "index.html";
-
 HttpParser::HttpParser()
 {
 }
@@ -24,7 +21,6 @@ evbuffer* HttpParser::setRequest(char *req)
     if(method == NULL || (strcmp(method, "GET") != 0 && strcmp(method, "HEAD") != 0)) {
         return (new Response(405))->getRawResponse();
     }
-    //std::cout << "Method: " << method << std::endl;
     
     char* file;
     file = strtok(NULL, " ");
@@ -40,17 +36,15 @@ evbuffer* HttpParser::setRequest(char *req)
     char* index = strrchr(file, '?');
     if(index != NULL) {
         index[0] = '\0';
-        //size_t pos = file - index + 1;
-        //memset(index, '\0', strlen(file) - pos);
     }
     
     char* path = (char *)malloc(1000);
-    strcpy(path, DOCUMENT_ROOT);
+    strcpy(path, Configuration::DOCUMENT_ROOT);
     strcat(path, file);
         
     bool isindex = false;
     if(file[strlen(file) - 1] == '/') {
-        strcat(path, INDEX_FILE);
+        strcat(path, Configuration::INDEX_FILE);
         isindex = true;
     }
     
@@ -108,7 +102,12 @@ const char *HttpParser::getContentType(char *extension)
     if(extension == NULL) {
         return Configuration::ext["no_ext"];
     } else {
-        return Configuration::ext[extension];
+        const char* ext = Configuration::ext[extension];
+        if(ext == NULL) {
+            return Configuration::ext["default"];
+        } else {
+            return ext;
+        }
     }
 }
 
