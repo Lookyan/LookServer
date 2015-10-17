@@ -56,6 +56,9 @@ const char *Response::getNameByCode(int code)
     case 200:
         return "OK";
         break;
+    case 403:
+        return "Forbidden";
+        break;
     case 404:
         return "Not Found";
         break;
