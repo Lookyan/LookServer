@@ -12,9 +12,6 @@ public:
 private:
     const char* getContentType(char* extension);
     void urldecode(char *pszDecodedOut, size_t nBufferSize, char *pszEncodedIn);
-    
-    char* req;
-    char* path;
 };
 
 #endif // HTTPPARSER_H

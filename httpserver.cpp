@@ -98,9 +98,7 @@ void HttpServer::acceptErrorCb(evconnlistener *listener, void *ctx)
 {
     struct event_base *base = evconnlistener_get_base(listener);
     int err = EVUTIL_SOCKET_ERROR();
-    fprintf(stderr, "Got an error %d (%s) on the listener. "
-            "Shutting down.\n", err, evutil_socket_error_to_string(err));
-
+    std::cout << "Got an error on the listener. (" << err << ") " << evutil_socket_error_to_string(err);
     event_base_loopexit(base, NULL);
 }
 
@@ -110,13 +108,11 @@ void HttpServer::readCb(bufferevent *bev, void *ctx)
     struct evbuffer *output = bufferevent_get_output(bev);
     
     char *request_line = (char *)calloc(1000, sizeof(char));
-    size_t len;
     
     evbuffer_copyout(input, request_line, evbuffer_get_length(input));
     HttpParser* httpParser = new HttpParser();
     evbuffer* temp = httpParser->setRequest(request_line);
     
-    //std::cout << request_line << std::endl;
     delete httpParser;
     free(request_line);
     
@@ -142,14 +138,11 @@ void HttpServer::writeCb(bufferevent *bev, void *ctx)
 void HttpServer::serverJobFunction(job *job)
 {
     Client *client = (Client *)job->user_data;
-    //bufferevent_lock(client->getBufEv());    
-//    evbuffer_enable_locking(bufferevent_get_input(client->getBufEv()), NULL);
-//    evbuffer_enable_locking(bufferevent_get_output(client->getBufEv()), NULL);
+    //bufferevent_lock(client->getBufEv());
     bufferevent_setcb(client->getBufEv(), readCb, writeCb, eventCb, NULL);
     bufferevent_enable(client->getBufEv(), EV_PERSIST|EV_TIMEOUT|EV_READ);
     
     delete client;
-	//closeAndFreeClient(client);
 	delete job;
     //bufferevent_unlock(client->getBufEv());
 }

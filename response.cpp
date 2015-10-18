@@ -1,9 +1,7 @@
 #include "response.h"
 #include <time.h>
 
-/*
- * free response after return 
-*/
+
 Response::Response(int code)
 {
     response = evbuffer_new();
@@ -19,14 +17,6 @@ Response::Response(int code)
     strftime (date, 80, "%a, %d %b %Y %H:%M:%S %Z", ptm);
     addHeader("Date", date);
     addHeader("Connection", "Close");
-    
-//    switch (code) {
-//    case 405:
-        
-//        break;
-//    default:
-//        break;
-//    }
 }
 
 Response::~Response()

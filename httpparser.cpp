@@ -3,6 +3,7 @@
 #include <iostream>
 #include <string.h>
 #include <stdio.h>
+#include <cstdlib>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <assert.h>
@@ -12,9 +13,7 @@ HttpParser::HttpParser()
 }
 
 evbuffer* HttpParser::setRequest(char *req)
-{
-    this->req = req;
-    
+{    
     //parse first line of request:
     char* method;
     method = strtok(req, " ");
