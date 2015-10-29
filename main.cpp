@@ -5,6 +5,7 @@
 #include <cstring>
 #include <exception>
 
+
 int main(int argc, char **argv)
 {    
     int port = 0;
@@ -40,6 +41,9 @@ int main(int argc, char **argv)
     HttpServer* httpServer = 0;
     try {
         HttpServer* httpServer = new HttpServer();
+//        pthread_t thr1;
+        
+        //pthread_create(&thr1, NULL, arrr, NULL);
         httpServer->startServer(port, nCPU, rootDir);
     }
     catch(std::exception& err) {

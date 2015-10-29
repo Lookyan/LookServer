@@ -1,5 +1,6 @@
 #include "httpserver.h"
 #include "client.h"
+#include <event2/event.h>
 #include <event2/thread.h>
 #include <iostream>
 #include <string.h>
@@ -10,6 +11,8 @@
 #include <stdexcept>
 #include "httpparser.h"
 #include "configuration.h"
+#include <sys/types.h>
+#include <unistd.h>
 
 workqueue_t HttpServer::workqueue;
 
@@ -70,8 +73,21 @@ void HttpServer::startServer(int port, int nCPU, char* docRoot)
     }
     
     evconnlistener_set_error_cb(listener, acceptErrorCb);
-
+    
+    for(int i = 0; i < nCPU - 1; i++) {
+        if (fork()) {
+            break;
+            /* In parent */
+            //continue_running_parent(base); /*...*/
+        } else {
+            /* In child */
+            event_reinit(base);
+            //continue_running_child(base); /*...*/
+        }
+    }
+    
     event_base_dispatch(base);
+    
     
     event_base_free(base);
     WorkQueue::workqueue_shutdown(&workqueue);
@@ -79,19 +95,23 @@ void HttpServer::startServer(int port, int nCPU, char* docRoot)
 
 void HttpServer::acceptConnCb(evconnlistener *listener, int fd, sockaddr *address, int socklen, void *arg)
 {
+    //std::cout << getpid() << std::endl;
     struct event_base *base = evconnlistener_get_base(listener);
     struct bufferevent *bev = bufferevent_socket_new(base, fd, BEV_OPT_CLOSE_ON_FREE|BEV_OPT_THREADSAFE);
     
-    workqueue_t *workqueue = (workqueue_t *)arg;
-    Client* client = new Client();
-    client->setBufEv(bev);
-    client->setEvBase(base);
-    client->setOutputBuffer(evbuffer_new());
+    bufferevent_setcb(bev, readCb, writeCb, eventCb, NULL);
+    bufferevent_enable(bev, EV_PERSIST|EV_TIMEOUT|EV_READ);
+    
+//    workqueue_t *workqueue = (workqueue_t *)arg;
+//    Client* client = new Client();
+//    client->setBufEv(bev);
+//    client->setEvBase(base);
+//    client->setOutputBuffer(evbuffer_new());
    
-    job_t *job = new job_t;
-    job->job_function = serverJobFunction;
-	job->user_data = client;
-    WorkQueue::workqueue_add_job(workqueue, job);
+//    job_t *job = new job_t;
+//    job->job_function = serverJobFunction;
+//	job->user_data = client;
+//    WorkQueue::workqueue_add_job(workqueue, job);
 }
 
 void HttpServer::acceptErrorCb(evconnlistener *listener, void *ctx)
@@ -104,6 +124,7 @@ void HttpServer::acceptErrorCb(evconnlistener *listener, void *ctx)
 
 void HttpServer::readCb(bufferevent *bev, void *ctx)
 {
+    //std::cout << "READ IN " << getpid() << std::endl;
     struct evbuffer *input = bufferevent_get_input(bev);
     struct evbuffer *output = bufferevent_get_output(bev);
     
@@ -139,6 +160,7 @@ void HttpServer::serverJobFunction(job *job)
 {
     Client *client = (Client *)job->user_data;
     //bufferevent_lock(client->getBufEv());
+    std::cout << "SET CB IN " << getpid() << std::endl;
     bufferevent_setcb(client->getBufEv(), readCb, writeCb, eventCb, NULL);
     bufferevent_enable(client->getBufEv(), EV_PERSIST|EV_TIMEOUT|EV_READ);
     
